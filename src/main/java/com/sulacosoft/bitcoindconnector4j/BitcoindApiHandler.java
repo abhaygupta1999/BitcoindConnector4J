@@ -51,6 +51,8 @@ import com.sulacosoft.bitcoindconnector4j.response.BaseResponse;
 import com.sulacosoft.bitcoindconnector4j.response.Error;
 import com.sulacosoft.bitcoindconnector4j.response.Fallback;
 
+import java.util.Objects;
+
 /**
  *  @author Sebastian Dziak {@literal (sebastian.dziak@sulacosoft.com)}
  *  @author Nicola Atzei

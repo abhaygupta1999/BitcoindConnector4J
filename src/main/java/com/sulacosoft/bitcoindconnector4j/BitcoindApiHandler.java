@@ -95,6 +95,15 @@ public class BitcoindApiHandler implements InvocationHandler {
 		context.setAuthCache(authCache);
 	}
 
+	public BitcoindApiHandler(String uri) {
+		this.uri = uri;
+
+		httpClient = HttpClients.createDefault();
+
+		targetHost = null;
+		context = null;
+	}
+
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 		String jsonRequest = String.format("{\"jsonrpc\": \"2.0\", \"method\": \"%s\", \"params\": [%s], \"id\": %s}",
@@ -103,7 +112,7 @@ public class BitcoindApiHandler implements InvocationHandler {
 		HttpPost httpPost = new HttpPost(uri);
 		httpPost.setEntity(new ByteArrayEntity(jsonRequest.getBytes(CHARACTER_ENCODING)));
 
-		try (CloseableHttpResponse response = httpClient.execute(targetHost, httpPost, context);) {
+		try (CloseableHttpResponse response = Objects.isNull(targetHost) ? httpClient.execute(httpPost) : httpClient.execute(targetHost, httpPost, context);) {
 			checkHttpErrors(response.getStatusLine().getStatusCode());
 			String jsonResponse = IOUtils.toString(response.getEntity().getContent(), CHARACTER_ENCODING);
 			BaseResponse jsonObject = new Gson().fromJson(jsonResponse, BaseResponse.class);

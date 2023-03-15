@@ -51,4 +51,16 @@ public class BitcoindApiFactory {
 		return api;
 	}
 
+	public static BitcoindApi createConnection(String uri) throws BitcoindConnector4JException {
+		BitcoindApiHandler handler = new BitcoindApiHandler(uri);
+		handler.setTimeout(-1, TimeUnit.MILLISECONDS);
+		BitcoindApi api = (BitcoindApi) Proxy.newProxyInstance(BitcoindApi.class.getClassLoader(),
+				new Class[] { BitcoindApi.class }, handler);
+
+		// test connection to bitcoind
+		api.getblockchaininfo();
+
+		return api;
+	}
+
 }

@@ -110,18 +110,20 @@ public class BitcoindApiHandler implements InvocationHandler {
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 		String jsonRequest = String.format("{\"jsonrpc\": \"2.0\", \"method\": \"%s\", \"params\": [%s], \"id\": %s}",
 				method.getName(), buildParamsString(args), id.getAndIncrement());
-
+		System.out.println(jsonRequest);
+		System.out.println(uri);
 		HttpPost httpPost = new HttpPost(uri);
 		httpPost.setEntity(new ByteArrayEntity(jsonRequest.getBytes(CHARACTER_ENCODING)));
 
 		try (CloseableHttpResponse response = Objects.isNull(targetHost) ? httpClient.execute(httpPost) : httpClient.execute(targetHost, httpPost, context);) {
+			System.out.println("Inside try-catch");
+			System.out.println(response);
 			checkHttpErrors(response.getStatusLine().getStatusCode());
 			String jsonResponse = IOUtils.toString(response.getEntity().getContent(), CHARACTER_ENCODING);
 			BaseResponse jsonObject = new Gson().fromJson(jsonResponse, BaseResponse.class);
 			System.out.println(jsonObject);
 			Error error = jsonObject.getError();
 			if (error != null) {
-				System.out.println(error.getMessage());
 				throw new BitcoindException(error.getMessage(), RPCErrorCode.fromCode(error.getCode()));
 			}
 

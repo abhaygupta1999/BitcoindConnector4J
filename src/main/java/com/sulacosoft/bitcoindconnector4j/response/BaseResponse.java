@@ -52,4 +52,12 @@ public class BaseResponse {
 		this.error = error;
 	}
 
+	@java.lang.Override
+	public java.lang.String toString() {
+		return "BaseResponse{" +
+				"id=" + id +
+				", result=" + result +
+				", error=" + error +
+				'}';
+	}
 }

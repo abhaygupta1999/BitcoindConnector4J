@@ -108,40 +108,49 @@ public class BitcoindApiHandler implements InvocationHandler {
 
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-		String jsonRequest = String.format("{\"jsonrpc\": \"2.0\", \"method\": \"%s\", \"params\": [%s], \"id\": %s}",
-				method.getName(), buildParamsString(args), id.getAndIncrement());
-
-		HttpPost httpPost = new HttpPost(uri);
-		httpPost.setEntity(new ByteArrayEntity(jsonRequest.getBytes(CHARACTER_ENCODING)));
-
-		try (CloseableHttpResponse response = Objects.isNull(targetHost) ? httpClient.execute(httpPost) : httpClient.execute(targetHost, httpPost, context);) {
-			checkHttpErrors(response.getStatusLine().getStatusCode());
-			String jsonResponse = IOUtils.toString(response.getEntity().getContent(), CHARACTER_ENCODING);
-			BaseResponse jsonObject = new Gson().fromJson(jsonResponse, BaseResponse.class);
-
-			Error error = jsonObject.getError();
-			if (error != null)
-				throw new BitcoindException(error.getMessage(), RPCErrorCode.fromCode(error.getCode()));
-
+		int retries = 0;
+		while (retries < 3) {
 			try {
-				return new Gson().fromJson(jsonObject.getResult(), method.getReturnType());
-			}
-			catch (RuntimeException e) {
-				Class<?> returnType = method.getReturnType();
-				for (Field f : returnType.getDeclaredFields()) {
-					if (f.isAnnotationPresent(Fallback.class)) {
-						Object obj = returnType.newInstance();
-						f.setAccessible(true);
-						f.set(obj, new Gson().fromJson(jsonObject.getResult(), f.getType()));
-						return obj;
+				String jsonRequest = String.format("{\"jsonrpc\": \"2.0\", \"method\": \"%s\", \"params\": [%s], \"id\": %s}",
+						method.getName(), buildParamsString(args), id.getAndIncrement());
+				HttpPost httpPost = new HttpPost(uri);
+				httpPost.setEntity(new ByteArrayEntity(jsonRequest.getBytes(CHARACTER_ENCODING)));
+
+				try (CloseableHttpResponse response = Objects.isNull(targetHost) ? httpClient.execute(httpPost) : httpClient.execute(targetHost, httpPost, context);) {
+					checkHttpErrors(response.getStatusLine().getStatusCode());
+					String jsonResponse = IOUtils.toString(response.getEntity().getContent(), CHARACTER_ENCODING);
+					BaseResponse jsonObject = new Gson().fromJson(jsonResponse, BaseResponse.class);
+					Error error = jsonObject.getError();
+					if (error != null) {
+						throw new BitcoindException(error.getMessage(), RPCErrorCode.fromCode(error.getCode()));
 					}
+
+					try {
+						return new Gson().fromJson(jsonObject.getResult(), method.getReturnType());
+					} catch (RuntimeException e) {
+						Class<?> returnType = method.getReturnType();
+						for (Field f : returnType.getDeclaredFields()) {
+							if (f.isAnnotationPresent(Fallback.class)) {
+								Object obj = returnType.newInstance();
+								f.setAccessible(true);
+								f.set(obj, new Gson().fromJson(jsonObject.getResult(), f.getType()));
+								return obj;
+							}
+						}
+						throw e;
+					}
+				} catch (Exception e) {
+					throw e;
 				}
-				throw e;
+			} catch (Exception e) {
+				retries++;
+				if (retries == 3) {
+					throw new BitcoindConnector4JException(e.getMessage(), -1);
+				}
+				System.out.println("Some error occurred: " + e.getMessage() + ". Retrying again for " + method.getName());
 			}
 		}
-		catch(Exception e) {
-			throw new BitcoindConnector4JException(e.getMessage(), -1);
-		}
+		throw new BitcoindConnector4JException("Max retries failed", -1);
 	}
 
 	private String buildParamsString(Object[] args) {

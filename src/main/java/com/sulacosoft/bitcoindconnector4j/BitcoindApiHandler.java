@@ -113,7 +113,6 @@ public class BitcoindApiHandler implements InvocationHandler {
 			try {
 				String jsonRequest = String.format("{\"jsonrpc\": \"2.0\", \"method\": \"%s\", \"params\": [%s], \"id\": %s}",
 						method.getName(), buildParamsString(args), id.getAndIncrement());
-				System.out.println(jsonRequest);
 				HttpPost httpPost = new HttpPost(uri);
 				httpPost.setEntity(new ByteArrayEntity(jsonRequest.getBytes(CHARACTER_ENCODING)));
 
@@ -148,6 +147,7 @@ public class BitcoindApiHandler implements InvocationHandler {
 				if (retries == 3) {
 					throw new BitcoindConnector4JException(e.getMessage(), -1);
 				}
+				System.out.println("Some error occurred: " + e.getMessage() + ". Retrying again for " + method.getName());
 			}
 		}
 		throw new BitcoindConnector4JException("Max retries failed", -1);

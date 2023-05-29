@@ -150,6 +150,7 @@ public class BitcoindApiHandler implements InvocationHandler {
 				}
 			}
 		}
+		throw new BitcoindConnector4JException("Max retries failed", -1);
 	}
 
 	private String buildParamsString(Object[] args) {

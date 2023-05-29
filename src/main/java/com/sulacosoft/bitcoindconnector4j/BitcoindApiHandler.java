@@ -118,10 +118,12 @@ public class BitcoindApiHandler implements InvocationHandler {
 			checkHttpErrors(response.getStatusLine().getStatusCode());
 			String jsonResponse = IOUtils.toString(response.getEntity().getContent(), CHARACTER_ENCODING);
 			BaseResponse jsonObject = new Gson().fromJson(jsonResponse, BaseResponse.class);
-
+			System.out.println(jsonObject);
 			Error error = jsonObject.getError();
-			if (error != null)
+			if (error != null) {
+				System.out.println(error.getMessage());
 				throw new BitcoindException(error.getMessage(), RPCErrorCode.fromCode(error.getCode()));
+			}
 
 			try {
 				return new Gson().fromJson(jsonObject.getResult(), method.getReturnType());
